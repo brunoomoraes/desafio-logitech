@@ -1,9 +1,10 @@
 from fastapi import FastAPI
-from backend.routes import router
+
+from router.order_router import order_router
 
 app = FastAPI(title="LogiTech API")
 
-app.include_router(router)
+app.include_router(order_router)
 
 if __name__ == "__main__":
     import uvicorn
