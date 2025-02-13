@@ -1,5 +1,5 @@
 from pydantic import BaseModel
 
 
-class CreateOrderInputDto(BaseModel):
+class CreateOrderDto(BaseModel):
     weight: float

@@ -2,7 +2,7 @@ from typing import List
 
 from fastapi import Depends, HTTPException
 
-from dto.create_order_input_dto import CreateOrderInputDto
+from dto.create_order_dto import CreateOrderDto
 from dto.order_response_dto import OrderResponseDTO
 from entity import order_entity
 from entity.order_entity import OrderEntity
@@ -14,7 +14,7 @@ class OrderController:
     def __init__(self, order_service: OrderService) -> None:
         self.order_service = order_service
 
-    def create_order(self, order_dto: CreateOrderInputDto) -> OrderResponseDTO:
+    def create_order(self, order_dto: CreateOrderDto) -> OrderResponseDTO:
         entity = OrderEntity(
             weight=order_dto.weight,
         )
