@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Optional
 from uuid import UUID
 
 from fastapi import Depends
@@ -22,12 +22,12 @@ class OrderRepository:
             self.db.rollback()
             raise e
 
-    def find_by_id(self, order_id: UUID) -> OrderEntity | None:
-        return self.db.query(OrderEntity).filter(
-            OrderEntity.order_id == order_id
-        ).first()
+    def find_by_id(self, order_id: UUID) -> Optional[OrderEntity]:
+        return (
+            self.db.query(OrderEntity).filter(OrderEntity.order_id == order_id).first()
+        )
 
-    def get_orders(self) -> list[Type[OrderEntity]]:
+    def get_all(self) -> list[OrderEntity]:
         return self.db.query(OrderEntity).all()
 
     def update(self, order: OrderEntity) -> OrderEntity:
@@ -37,6 +37,7 @@ class OrderRepository:
     def delete(self, order: OrderEntity) -> None:
         self.db.delete(order)
         self.db.commit()
+
 
 def get_order_repository(db: Session = Depends(get_db)) -> OrderRepository:
     return OrderRepository(db)
