@@ -7,30 +7,38 @@ from typing import Tuple
 from sqlalchemy.orm import Session, sessionmaker
 
 
-def get_environment_variables() -> Tuple[str, str, str, str]:
+def get_environment_variables() -> Tuple[str, str, str, str, str]:
     if "AWS_EXECUTION_ENV" not in os.environ:
         load_dotenv(find_dotenv())
 
-    username = os.getenv("USERNAME_POSTGRES")
-    password = os.getenv("PASSWORD_POSTGRES")
-    host = os.getenv("HOST_POSTGRES")
-    database = os.getenv("DATABASE_POSTGRES")
+    username = os.getenv("POSTGRES_USER")
+    password = os.getenv("POSTGRES_PASSWORD")
+    host = os.getenv("POSTGRES_HOST")
+    database = os.getenv("POSTGRES_DB")
+    port = os.getenv("POSTGRES_PORT")
 
-    return username, password, host, database
+    return username, password, host, database, port
 
 
 class Postgres:
-    def __init__(self, username: str, password: str, host: str, database: str):
+    def __init__(
+        self, username: str, password: str, host: str, database: str, port: str
+    ) -> None:
+        self.database_url = None
         self.username = username
         self.password = password
         self.host = host
         self.database = database
+        self.port = port
         self.engine = self.start_engine()
         self.session_maker = self.start_session()
 
     def start_engine(self) -> Engine:
-        database_url = f"postgresql+pg8000://{self.username}:%s@{self.host}/{self.database}?application_name=microsservico"
-        return create_engine(database_url % quote_plus(self.password), echo=True)
+        self.database_url = (
+            f"postgresql+pg8000://{self.username}:%s@{self.host}:{self.port}/{self.database}?application_name=microsservico"
+            % quote_plus(self.password)
+        )
+        return create_engine(self.database_url, echo=True)
 
     def start_session(self) -> sessionmaker[Session]:
         return sessionmaker(
@@ -42,6 +50,9 @@ class Postgres:
 
     def get_session(self) -> Session:
         return self.session_maker()
+
+    def get_database_url(self) -> str:
+        return self.database_url
 
 
 POSTGRES_INSTANCE = Postgres(*get_environment_variables())
