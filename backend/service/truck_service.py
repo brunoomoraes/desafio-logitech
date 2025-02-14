@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Optional
+from uuid import UUID
 
 from fastapi import Depends
 
@@ -15,6 +16,12 @@ class TruckService:
 
     def get_all(self) -> List[TruckEntity]:
         return self._truck_repository.get_all()
+
+    def find_by_id(self, truck_id: UUID) -> Optional[TruckEntity]:
+        return self._truck_repository.find_by_id(truck_id)
+
+    def update(self, truck_entity: TruckEntity) -> TruckEntity:
+        return self._truck_repository.update(truck_entity)
 
 def get_truck_service(
     truck_repository: TruckRepository = Depends(get_truck_repository),
