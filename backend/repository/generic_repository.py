@@ -22,6 +22,9 @@ class GenericRepository(Generic[T]):
             self.db.rollback()
             raise e
 
+    def find_by_id(self, entity_id: UUID) -> Optional[T]:
+        return self.db.query(self.model).get(entity_id)
+
     def get_all(self) -> list[T]:
         return self.db.query(self.model).all()
 
