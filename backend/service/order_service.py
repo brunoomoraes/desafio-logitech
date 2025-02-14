@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import Depends
 
 from entity.order_entity import OrderEntity
@@ -11,7 +13,7 @@ class OrderService:
     def create(self, order: OrderEntity) -> OrderEntity:
         return self.order_repository.create(order)
 
-    def get_all(self) -> list[OrderEntity]:
+    def get_all(self) -> List[OrderEntity]:
         return self.order_repository.get_all()
 
 
