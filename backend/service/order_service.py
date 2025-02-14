@@ -1,10 +1,7 @@
-from typing import Optional, List, Type
-
 from fastapi import Depends
 
 from entity.order_entity import OrderEntity
 from repository.order_repository import OrderRepository, get_order_repository
-from uuid import UUID
 
 
 class OrderService:
