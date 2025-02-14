@@ -29,6 +29,8 @@ class GenericRepository(Generic[T]):
         return self.db.query(self.model).all()
 
     def update(self, entity: T) -> T:
+        self.db.add(entity)
+        self.db.commit()
         self.db.refresh(entity)
         return entity
 
