@@ -23,6 +23,7 @@ class TruckService:
     def update(self, truck_entity: TruckEntity) -> TruckEntity:
         return self._truck_repository.update(truck_entity)
 
+
 def get_truck_service(
     truck_repository: TruckRepository = Depends(get_truck_repository),
 ) -> TruckService:

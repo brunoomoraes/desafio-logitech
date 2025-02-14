@@ -7,6 +7,7 @@ from entity.base_entity import Base
 
 T = TypeVar("T", bound=Base)
 
+
 class GenericRepository(Generic[T]):
     def __init__(self, db: Session, model: Base) -> None:
         self.db = db

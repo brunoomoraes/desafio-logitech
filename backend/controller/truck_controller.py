@@ -34,5 +34,8 @@ class TruckController:
         truck_entity.max_weight = truck_dto.max_weight
         return self.truck_service.update(truck_entity)
 
-def get_truck_controller(truck_service: TruckService = Depends(get_truck_service)) -> TruckController:
+
+def get_truck_controller(
+    truck_service: TruckService = Depends(get_truck_service),
+) -> TruckController:
     return TruckController(truck_service)
