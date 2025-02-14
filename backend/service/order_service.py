@@ -14,9 +14,6 @@ class OrderService:
     def create(self, order: OrderEntity) -> OrderEntity:
         return self.order_repository.create(order)
 
-    def find_by_id(self, order_id: UUID) -> Optional[OrderEntity]:
-        return self.order_repository.find_by_id(order_id)
-
     def get_all(self) -> list[OrderEntity]:
         return self.order_repository.get_all()
 
