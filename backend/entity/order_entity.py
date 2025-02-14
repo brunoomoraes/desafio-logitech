@@ -1,7 +1,7 @@
-from datetime import datetime
-
-from sqlalchemy import Column, UUID, Float, String, Enum, DateTime
+from sqlalchemy import UUID, Float, Enum
 import uuid
+
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from entity.base_entity import Base
 from status.order_status import OrderStatus
@@ -10,8 +10,12 @@ from status.order_status import OrderStatus
 class OrderEntity(Base):
     __tablename__ = "order"
 
-    order_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    weight = Column(Float, nullable=False)
-    status = Column(Enum(OrderStatus), nullable=False, default=OrderStatus.CREATED)
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    weight: Mapped[float] = mapped_column(Float, nullable=False)
+    status: Mapped[OrderStatus] = mapped_column(
+        Enum(OrderStatus), nullable=False, default=OrderStatus.CREATED
+    )
+
+    distribution: Mapped["OrderDistributionEntity"] = relationship(back_populates="order", uselist=False)
