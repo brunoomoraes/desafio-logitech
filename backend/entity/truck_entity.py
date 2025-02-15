@@ -16,4 +16,6 @@ class TruckEntity(Base):
     )
     max_weight: Mapped[float] = mapped_column(Float, nullable=False)
 
-    distributions: Mapped[List["OrderDistributionEntity"]] = relationship(back_populates="truck")
+    distributions: Mapped[List["OrderDistributionEntity"]] = relationship(
+        back_populates="truck"
+    )

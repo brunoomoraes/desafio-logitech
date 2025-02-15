@@ -14,9 +14,7 @@ class NonAllocatedOrderEntity(Base):
     )
     reason: Mapped[str] = mapped_column(String, nullable=False)
 
-    order_id: Mapped[UUID] = mapped_column(
-        ForeignKey("order.order_id"), nullable=False
-    )
+    order_id: Mapped[UUID] = mapped_column(ForeignKey("order.order_id"), nullable=False)
     distribution_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("distribution.distribution_id"), nullable=False
     )

@@ -16,4 +16,6 @@ class DistributionEntity(Base):
     )
     date: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
-    orders: Mapped[List["OrderDistributionEntity"]] = relationship(back_populates="distribution")
+    orders: Mapped[List["OrderDistributionEntity"]] = relationship(
+        back_populates="distribution"
+    )

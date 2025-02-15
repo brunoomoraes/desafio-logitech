@@ -18,4 +18,6 @@ class OrderEntity(Base):
         Enum(OrderStatus), nullable=False, default=OrderStatus.CREATED
     )
 
-    distribution: Mapped["OrderDistributionEntity"] = relationship(back_populates="order", uselist=False)
+    distribution: Mapped["OrderDistributionEntity"] = relationship(
+        back_populates="order", uselist=False
+    )

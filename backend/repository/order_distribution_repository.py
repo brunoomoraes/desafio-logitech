@@ -10,5 +10,8 @@ class OrderDistributionRepository(GenericRepository[OrderDistributionEntity]):
     def __init__(self, db: Session):
         super().__init__(db, OrderDistributionEntity)
 
-def get_order_distribution_repository(db: Session = Depends(get_db)) -> OrderDistributionRepository:
+
+def get_order_distribution_repository(
+    db: Session = Depends(get_db),
+) -> OrderDistributionRepository:
     return OrderDistributionRepository(db)
