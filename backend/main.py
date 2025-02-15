@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-from router.distribution_router import distribution_router
-from router.order_router import order_router
-from router.truck_router import truck_router
+from src.router.order_router import order_router
+from src.router.truck_router import truck_router
+from src.router.distribution_router import distribution_router
 
 app = FastAPI(title="LogiTech API")
 
