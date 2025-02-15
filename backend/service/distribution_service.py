@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 from typing import List, TypedDict
 from uuid import UUID
@@ -32,6 +33,7 @@ from repository.truck_repository import TruckRepository, get_truck_repository
     In my research i found some solution for this problem, the one that its implemented here is the BFD.
     It's a greedy algorithm, that is based on putting the next order in the best fit truck,
     that in this case is the truck with the least amount of space remaining.
+    The BFD is a good solution, but for large datasets, is costly, and a heuristic algorithm is probably better.
 """
 
 
@@ -62,12 +64,53 @@ class DistributionService:
 
         return self.best_fit_decreasing(orders, trucks, distribution_id)
 
-    @staticmethod
     def best_fit_decreasing(
-        orders: List[OrderEntity], trucks: List[TruckEntity], distribution_id: UUID
+        self, orders: List[OrderEntity], trucks: List[TruckEntity], distribution_id: UUID
     ) -> DistributeOrderServiceResponseDTO:
-        pass
+        sorted_orders = sorted(orders, key=lambda x: x.weight, reverse=True)
+        sorted_trucks = sorted(trucks, key=lambda x: x.max_weight, reverse=True)
 
+        truck_loads = defaultdict(float) # Track the current load based on truck_id
+        order_distribution = []
+        non_allocated_orders = []
+
+        for order in sorted_orders:
+            best_truck = None # Track if order can be put in a truck
+            min_remaining_weight = float("inf")
+
+            for truck in sorted_trucks:
+                remaining_weight = truck.max_weight - truck_loads[truck.truck_id]
+                if order.weight <= remaining_weight < min_remaining_weight:
+                    best_truck = truck
+                    min_remaining_weight = remaining_weight
+
+            if best_truck:
+                truck_loads[best_truck.truck_id] += order.weight
+                order_distribution.append(
+                    self.order_distribution_repository.create(
+                        OrderDistributionEntity(
+                            distribution_id=distribution_id,
+                            truck_id=best_truck.truck_id,
+                            order_id=order.order_id,
+                        )
+                    )
+                )
+            else:
+                non_allocated_orders.append(
+                    self.non_allocated_order_repository.create(
+                        NonAllocatedOrderEntity(
+                            order_id=order.order_id,
+                            distribution_id=distribution_id,
+                            reason="Cannot fit order"
+                        )
+                    )
+                )
+
+
+        return DistributeOrderServiceResponseDTO(
+            order_distribution=order_distribution,
+            non_allocated_orders=non_allocated_orders,
+        )
 
 def get_distribution_service(
     truck_repository: TruckRepository = Depends(get_truck_repository),
