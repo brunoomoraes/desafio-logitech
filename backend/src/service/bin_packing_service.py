@@ -70,6 +70,7 @@ class BinPackingService:
                 self._add_non_allocated_order(
                     order, "Order weight exceeds maximum truck capacity"
                 )
+                continue
 
             best_truck = None  # Track if order can be put in a truck
             min_remaining_weight = float("inf")
