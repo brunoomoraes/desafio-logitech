@@ -59,6 +59,14 @@ class BinPackingService:
     def best_fit_decreasing(
         self,
     ) -> Tuple[List[OrderDistributionEntity], List[NonAllocatedOrderEntity]]:
+        if len(self.orders) == 0:
+            return [], []
+
+        if len(self.trucks) == 0:
+            [self._add_non_allocated_order(order, "No truck available") for order in self.orders]
+            return [], self.non_allocated_orders
+
+
         sorted_orders = sorted(self.orders, key=lambda x: x.weight, reverse=True)
         sorted_trucks = sorted(self.trucks, key=lambda x: x.max_weight, reverse=True)
 
