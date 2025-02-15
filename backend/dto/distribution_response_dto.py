@@ -13,19 +13,26 @@ class DistributionResponseDTO(BaseModel):
 
     @classmethod
     def from_dict(
-        cls, distribution_response_dict: dict[str, List[OrderDistributionEntity | NonAllocatedOrderEntity]]
+        cls,
+        distribution_response_dict: dict[
+            str, List[OrderDistributionEntity | NonAllocatedOrderEntity]
+        ],
     ) -> "DistributionResponseDTO":
         return DistributionResponseDTO(
             order_distribution=[
                 OrderDistributionResponseDTO.from_order_distribution_entity(
                     order_distribution
                 )
-                for order_distribution in distribution_response_dict.get("order_distribution")
+                for order_distribution in distribution_response_dict.get(
+                    "order_distribution"
+                )
             ],
             non_allocated_orders=[
                 NonAllocatedOrderResponseDTO.from_non_allocated_order_entity(
                     non_allocated_order
                 )
-                for non_allocated_order in distribution_response_dict.get("non_allocated_orders")
+                for non_allocated_order in distribution_response_dict.get(
+                    "non_allocated_orders"
+                )
             ],
         )
