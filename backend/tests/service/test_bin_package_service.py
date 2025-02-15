@@ -1,9 +1,10 @@
 from typing import List
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 
 from src.entity import OrderEntity, TruckEntity
+from src.service.bin_packing_service import BinPackingService
 from src.status.order_status import OrderStatus
 
 
@@ -47,3 +48,50 @@ def sample_trucks() -> List[TruckEntity]:
             max_weight=200
         ),
     ]
+
+def test_empty_input(distribution_id):
+    service = BinPackingService([], [], distribution_id)
+    order_distribution, non_allocated = service.best_fit_decreasing()
+
+    assert len(order_distribution) == 0
+    assert len(non_allocated) == 0
+
+def test_empty_trucks(sample_orders, distribution_id):
+    service = BinPackingService(sample_orders, [], distribution_id)
+    order_distribution, non_allocated = service.best_fit_decreasing()
+
+    assert len(order_distribution) == 0
+    assert len(non_allocated) == len(sample_orders)
+    assert all(order.status == OrderStatus.NON_ALLOCATED for order in sample_orders)
+    assert all(non_allocated_entity.reason == "No truck available" for non_allocated_entity in non_allocated)
+
+# No truck can fit this order
+def test_order_larger_than_truck_limit(distribution_id, sample_trucks):
+    heavy_order = OrderEntity(
+        order_id=uuid4(),
+        weight=250,
+        status=OrderStatus.CREATED
+    )
+
+    service = BinPackingService([heavy_order], sample_trucks, distribution_id)
+    order_distribution, non_allocated = service.best_fit_decreasing()
+
+    assert len(order_distribution) == 0
+    assert len(non_allocated) == 1
+    assert non_allocated[0].reason == "Order weight exceeds maximum truck capacity"
+    assert heavy_order.status == OrderStatus.NON_ALLOCATED
+
+# The first truck has the same capacity as the order, so it should fit preferably in the first truck
+def test_best_fit_order(distribution_id, sample_trucks):
+    order = OrderEntity(
+        order_id=uuid4(),
+        weight=100,
+        status=OrderStatus.CREATED
+    )
+
+    service = BinPackingService([order], sample_trucks, distribution_id)
+    order_distribution, non_allocated = service.best_fit_decreasing()
+    assert len(order_distribution) == 1
+    assert len(non_allocated) == 0
+    assert order.status == OrderStatus.ALLOCATED
+    assert order_distribution[0].truck_id == sample_trucks[0].truck_id
