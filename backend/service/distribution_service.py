@@ -5,7 +5,6 @@ from uuid import UUID
 
 from fastapi import Depends
 
-from dto.distribute_order_service_response_dto import DistributeOrderServiceResponseDTO
 from entity import (
     DistributionEntity,
     OrderEntity,
@@ -24,16 +23,17 @@ from repository.non_allocated_order_repository import (
 from repository.order_distribution_repository import OrderDistributionRepository
 from repository.order_repository import OrderRepository, get_order_repository
 from repository.truck_repository import TruckRepository, get_truck_repository
+from status.order_status import OrderStatus
 
 """
     The problem we are trying to solve is a bin package problem, more specifically the variable bin package problem.
     I have studied this problem in college in my operational research course. there are some implementation that 
-    are gready, and some solutions that use heuristics, and not necessarily returns the optimal solution.
+    are gready, and some solutions that use metaheuristics, and not necessarily returns the optimal solution.
     This is a NP-HARD problem. So there is no polynomial solution. 
     In my research i found some solution for this problem, the one that its implemented here is the BFD.
     It's a greedy algorithm, that is based on putting the next order in the best fit truck,
     that in this case is the truck with the least amount of space remaining.
-    The BFD is a good solution, but for large datasets, is costly, and a heuristic algorithm is probably better.
+    The BFD is a good solution, but for large datasets, is costly, and a metaheuristics algorithm is probably better.
 """
 
 
@@ -52,7 +52,7 @@ class DistributionService:
         self.non_allocated_order_repository = non_allocated_order_repository
         self.order_distribution_repository = order_distribution_repository
 
-    def distribute_orders(self) -> DistributeOrderServiceResponseDTO:
+    def distribute_orders(self) -> dict[str, List[OrderDistributionEntity | NonAllocatedOrderEntity]]:
         orders = (
             self.order_repository.get_all_orders_that_status_is_different_than_allocated()
         )
@@ -66,7 +66,7 @@ class DistributionService:
 
     def best_fit_decreasing(
         self, orders: List[OrderEntity], trucks: List[TruckEntity], distribution_id: UUID
-    ) -> DistributeOrderServiceResponseDTO:
+    ) -> dict[str, List[OrderDistributionEntity | NonAllocatedOrderEntity]]:
         sorted_orders = sorted(orders, key=lambda x: x.weight, reverse=True)
         sorted_trucks = sorted(trucks, key=lambda x: x.max_weight, reverse=True)
 
@@ -86,6 +86,10 @@ class DistributionService:
 
             if best_truck:
                 truck_loads[best_truck.truck_id] += order.weight
+
+                order.status = OrderStatus.ALLOCATED
+                self.order_repository.update(order)
+
                 order_distribution.append(
                     self.order_distribution_repository.create(
                         OrderDistributionEntity(
@@ -96,6 +100,9 @@ class DistributionService:
                     )
                 )
             else:
+                order.status = OrderStatus.NON_ALLOCATED
+                self.order_repository.update(order)
+
                 non_allocated_orders.append(
                     self.non_allocated_order_repository.create(
                         NonAllocatedOrderEntity(
@@ -107,10 +114,10 @@ class DistributionService:
                 )
 
 
-        return DistributeOrderServiceResponseDTO(
-            order_distribution=order_distribution,
-            non_allocated_orders=non_allocated_orders,
-        )
+        return {
+            "order_distribution": order_distribution,
+            "non_allocated_orders": non_allocated_orders,
+        }
 
 def get_distribution_service(
     truck_repository: TruckRepository = Depends(get_truck_repository),

@@ -9,7 +9,7 @@ class DistributionController:
         self.distribution_service = distribution_service
 
     def distribute_orders(self):
-        return DistributionResponseDTO.from_distribution_order_service_dto(
+        return DistributionResponseDTO.from_dict(
             self.distribution_service.distribute_orders()
         )
 
