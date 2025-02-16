@@ -1,3 +1,4 @@
+import uuid
 from uuid import UUID
 
 from sqlalchemy import ForeignKey
@@ -22,3 +23,8 @@ class OrderDistributionEntity(Base):
     distribution: Mapped["DistributionEntity"] = relationship(back_populates="orders")
     order: Mapped["OrderEntity"] = relationship(back_populates="distribution")
     truck: Mapped["TruckEntity"] = relationship(back_populates="distributions")
+
+    def __str__(self) -> str:
+        return (
+            f"{{order_id={self.order_id}, truck_id={self.truck_id}, order_weight={self.order.weight}, truck_weight={self.truck.max_weight}}}"
+        )
