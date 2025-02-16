@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import List
 from uuid import UUID, uuid4
 
@@ -11,6 +12,7 @@ from src.status.order_status import OrderStatus
 @pytest.fixture
 def distribution_id():
     return UUID("f6485ae8-f15e-46c7-a0c0-d49cc57d78a6")
+
 
 @pytest.fixture
 def sample_orders() -> List[OrderEntity]:
@@ -32,22 +34,51 @@ def sample_orders() -> List[OrderEntity]:
         ),
     ]
 
+
 @pytest.fixture
 def sample_trucks() -> List[TruckEntity]:
     return [
         TruckEntity(
-            truck_id=UUID("01ad9072-8f6c-40fa-96c3-a0c2b94670a5"),
-            max_weight=100
+            truck_id=UUID("01ad9072-8f6c-40fa-96c3-a0c2b94670a5"), max_weight=100
         ),
         TruckEntity(
-            truck_id=UUID("8a17fd04-4b21-42c0-8f73-a4e7cae1a8c8"),
-            max_weight=150
+            truck_id=UUID("8a17fd04-4b21-42c0-8f73-a4e7cae1a8c8"), max_weight=150
         ),
         TruckEntity(
-            truck_id=UUID("c29660f1-b699-44c2-9d79-c19d092bdf2e"),
-            max_weight=200
+            truck_id=UUID("c29660f1-b699-44c2-9d79-c19d092bdf2e"), max_weight=200
         ),
     ]
+
+
+def test_simple_allocation(sample_orders, sample_trucks, distribution_id):
+    service = BinPackingService(sample_orders, sample_trucks, distribution_id)
+    order_distribution, non_allocated = service.best_fit_decreasing()
+
+    assert len(order_distribution) == 3
+    assert len(non_allocated) == 0
+    assert all(order.status == OrderStatus.ALLOCATED for order in sample_orders)
+    assert any(
+        order_distribution_entity.truck_id
+        == UUID("01ad9072-8f6c-40fa-96c3-a0c2b94670a5")
+        and order_distribution_entity.order_id
+        == UUID("1b089cfd-50e1-45d1-83c4-48d861fa04ab")
+        for order_distribution_entity in order_distribution
+    )
+    assert any(
+        order_distribution_entity.truck_id
+        == UUID("01ad9072-8f6c-40fa-96c3-a0c2b94670a5")
+        and order_distribution_entity.order_id
+        == UUID("53412567-911f-43ea-bd74-2ab75f22c16f")
+        for order_distribution_entity in order_distribution
+    )
+    assert any(
+        order_distribution_entity.truck_id
+        == UUID("8a17fd04-4b21-42c0-8f73-a4e7cae1a8c8")
+        and order_distribution_entity.order_id
+        == UUID("a591d7b9-495f-4921-9b73-f634173d48d7")
+        for order_distribution_entity in order_distribution
+    )
+
 
 def test_empty_input(distribution_id):
     service = BinPackingService([], [], distribution_id)
@@ -56,6 +87,7 @@ def test_empty_input(distribution_id):
     assert len(order_distribution) == 0
     assert len(non_allocated) == 0
 
+
 def test_empty_trucks(sample_orders, distribution_id):
     service = BinPackingService(sample_orders, [], distribution_id)
     order_distribution, non_allocated = service.best_fit_decreasing()
@@ -63,15 +95,15 @@ def test_empty_trucks(sample_orders, distribution_id):
     assert len(order_distribution) == 0
     assert len(non_allocated) == len(sample_orders)
     assert all(order.status == OrderStatus.NON_ALLOCATED for order in sample_orders)
-    assert all(non_allocated_entity.reason == "No truck available" for non_allocated_entity in non_allocated)
+    assert all(
+        non_allocated_entity.reason == "No truck available"
+        for non_allocated_entity in non_allocated
+    )
+
 
 # No truck can fit this order
 def test_order_larger_than_truck_limit(distribution_id, sample_trucks):
-    heavy_order = OrderEntity(
-        order_id=uuid4(),
-        weight=250,
-        status=OrderStatus.CREATED
-    )
+    heavy_order = OrderEntity(order_id=uuid4(), weight=250, status=OrderStatus.CREATED)
 
     service = BinPackingService([heavy_order], sample_trucks, distribution_id)
     order_distribution, non_allocated = service.best_fit_decreasing()
@@ -81,13 +113,10 @@ def test_order_larger_than_truck_limit(distribution_id, sample_trucks):
     assert non_allocated[0].reason == "Order weight exceeds maximum truck capacity"
     assert heavy_order.status == OrderStatus.NON_ALLOCATED
 
+
 # The first truck has the same capacity as the order, so it should fit preferably in the first truck
 def test_best_fit_order(distribution_id, sample_trucks):
-    order = OrderEntity(
-        order_id=uuid4(),
-        weight=100,
-        status=OrderStatus.CREATED
-    )
+    order = OrderEntity(order_id=uuid4(), weight=100, status=OrderStatus.CREATED)
 
     service = BinPackingService([order], sample_trucks, distribution_id)
     order_distribution, non_allocated = service.best_fit_decreasing()
@@ -95,3 +124,46 @@ def test_best_fit_order(distribution_id, sample_trucks):
     assert len(non_allocated) == 0
     assert order.status == OrderStatus.ALLOCATED
     assert order_distribution[0].truck_id == sample_trucks[0].truck_id
+
+
+def test_if_truck_load_doesnt_exceeds_max_truck_capacity(distribution_id):
+    trucks = [
+        TruckEntity(truck_id=uuid4(), max_weight=100),
+        TruckEntity(truck_id=uuid4(), max_weight=150),
+    ]
+
+    orders = [
+        OrderEntity(order_id=uuid4(), weight=80, status=OrderStatus.CREATED),
+        OrderEntity(order_id=uuid4(), weight=60, status=OrderStatus.CREATED),
+        OrderEntity(order_id=uuid4(), weight=40, status=OrderStatus.CREATED),
+        OrderEntity(order_id=uuid4(), weight=70, status=OrderStatus.CREATED),
+    ]
+
+    service = BinPackingService(orders, trucks, distribution_id)
+    order_distribution, non_allocated = service.best_fit_decreasing()
+
+    assert len(order_distribution) + len(non_allocated) == len(orders)
+
+    assert (
+        next(
+            order.weight
+            for order in orders
+            if order.order_id == non_allocated[0].order_id
+        )
+        == 40
+    )
+
+    truck_loads = defaultdict(float)
+    for order_distribution_entity in order_distribution:
+        order_weight = next(
+            order.weight
+            for order in orders
+            if order.order_id == order_distribution_entity.order_id
+        )
+        truck_max_weight = next(
+            truck.max_weight
+            for truck in trucks
+            if truck.truck_id == order_distribution_entity.truck_id
+        )
+        truck_loads[order_distribution_entity.truck_id] += order_weight
+        assert truck_loads[order_distribution_entity.truck_id] <= truck_max_weight
