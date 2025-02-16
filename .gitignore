@@ -14,4 +14,4 @@ venv/
 # Ignorar arquivos de log e temporários
 *.log
 
-.db
+*.db
