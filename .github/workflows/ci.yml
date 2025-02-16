@@ -41,12 +41,12 @@ jobs:
         with:
           python-version: "3.10"
 
-      # - name: Instalar dependências
-      #  run: |
-      #    pip install flake8 black
+      - name: Instalar dependências
+        run: |
+          pip install flake8 black
 
       - name: Rodar Flake8
-        run: flake8 --max-line-length=90
+        run: flake8 .
 
       - name: Rodar Black (checagem)
         run: black . --check
@@ -54,7 +54,7 @@ jobs:
   test:
     name: Testes Unitários
     runs-on: ubuntu-latest
-    needs: setup
+    needs: lint
 
     steps:
       - name: Checkout do código
@@ -65,9 +65,9 @@ jobs:
         with:
           python-version: "3.10"
 
-      #- name: Instalar dependências
-      #  run: |
-      #    pip install pytest pytest-cov httpx
+      - name: Instalar dependências
+        run: |
+          pip install pytest pytest-cov httpx
 
       - name: Rodar testes com cobertura
         run: pytest --cov=app --cov-report=term-missing
