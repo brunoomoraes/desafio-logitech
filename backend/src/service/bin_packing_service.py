@@ -46,6 +46,8 @@ class BinPackingService:
                 distribution_id=self.distribution_id,
                 truck_id=truck.truck_id,
                 order_id=order.order_id,
+                order=order,
+                truck=truck,
             )
         )
 
@@ -105,11 +107,15 @@ class BinPackingService:
         return self.order_distribution, self.non_allocated_orders
 
     def tabu_search(
-        self, max_iterations: int = 100, tabu_tenure: int = 10
+        self, max_iterations: int = 100, tabu_tenure: int = 25
     ) -> Tuple[List[OrderDistributionEntity], List[NonAllocatedOrderEntity]]:
+        self.non_allocated_orders.clear()
+        self.order_distribution.clear()
+
         initial_order_distribution, _ = self.best_fit_decreasing()
 
-        best_solution = initial_order_distribution.copy()
+        best_solution = self.copy_list_of_order_distribution_entity(initial_order_distribution)
+        best_allocated_count = len(initial_order_distribution)
         best_truck_count = len(
             set(
                 order_distribution_entity.truck_id
@@ -124,7 +130,7 @@ class BinPackingService:
             neighbors = self._generate_neighbors(best_solution)
 
             best_neighbor = None
-            best_allocated_count = -1
+            best_neighbor_allocated_count = -1
             best_neighbor_truck_count = float("inf")
 
             for neighbor in neighbors:
@@ -132,17 +138,23 @@ class BinPackingService:
                 truck_count = len(set(dist.truck_id for dist in neighbor))
 
                 if (
-                    (allocated_count > best_allocated_count)
+                    (allocated_count > best_neighbor_allocated_count)
                     or (
-                        allocated_count == best_allocated_count
+                        allocated_count == best_neighbor_allocated_count
                         and truck_count < best_neighbor_truck_count
                     )
                 ) and neighbor not in tabu_list:
                     best_neighbor = neighbor
-                    best_allocated_count = allocated_count
+                    best_neighbor_allocated_count = allocated_count
                     best_neighbor_truck_count = truck_count
 
-            if best_neighbor:
+            if best_neighbor and (
+                    (best_neighbor_allocated_count > best_allocated_count)
+                    or (
+                        best_allocated_count == best_neighbor_allocated_count
+                        and best_truck_count < best_neighbor_truck_count
+                    )
+            ):
                 best_solution = best_neighbor
                 best_truck_count = best_neighbor_truck_count
                 tabu_list.append(best_neighbor)
@@ -161,22 +173,29 @@ class BinPackingService:
     ) -> List[List[OrderDistributionEntity]]:
         neighbors = []
 
+        # Single order move
         for current_distribution in current_solution:
-
             for truck in self.trucks:
                 if truck.truck_id != current_distribution.truck_id:
-                    new_solution = current_solution.copy()
+                    new_solution = self.copy_list_of_order_distribution_entity(current_solution)
 
                     new_order_distribution = [
                         OrderDistributionEntity(
                             distribution_id=order_distribution_entity.distribution_id,
                             order_id=order_distribution_entity.order_id,
+                            order=order_distribution_entity.order,
                             truck_id=(
                                 truck.truck_id
                                 if order_distribution_entity.order_id
                                 == current_distribution.order_id
                                 else order_distribution_entity.truck_id
                             ),
+                            truck=(
+                                truck
+                                if order_distribution_entity.order_id
+                                == current_distribution.order_id
+                                else order_distribution_entity.truck
+                           )
                         )
                         for order_distribution_entity in new_solution
                     ]
@@ -184,28 +203,48 @@ class BinPackingService:
                     if self._is_valid_solution(new_order_distribution):
                         neighbors.append(new_order_distribution)
 
-        for non_allocated in self.non_allocated_orders:
-            for truck in self.trucks:
-                if self._can_add_order_to_truck(non_allocated.order_id, truck):
-                    new_solution = current_solution.copy()
-                    new_order_distribution = new_solution + [
-                        OrderDistributionEntity(
-                            distribution_id=self.distribution_id,
-                            order_id=non_allocated.order_id,
-                            truck_id=truck.truck_id,
-                        )
-                    ]
-                    if self._is_valid_solution(new_order_distribution):
+        # Swap order between trucks
+        for order_distribution_i in current_solution:
+            for order_distribution_j in current_solution:
+                if order_distribution_i != order_distribution_j and order_distribution_i.truck_id != order_distribution_j.truck_id:
+                    new_solution = []
+
+                    for order_distribution_entity in self.copy_list_of_order_distribution_entity(current_solution):
+                        if order_distribution_entity.order_id == order_distribution_i.order_id:
+                            order_distribution_entity.truck_id = order_distribution_j.truck_id
+                            order_distribution_entity.truck = order_distribution_j.truck
+                            new_solution.append(order_distribution_entity)
+                        elif order_distribution_entity.order_id == order_distribution_j.order_id:
+                            order_distribution_entity.truck_id = order_distribution_i.truck_id
+                            order_distribution_entity.truck = order_distribution_i.truck
+                            new_solution.append(order_distribution_entity)
+                        else:
+                            new_solution.append(order_distribution_entity)
+
+
+                    if self._is_valid_solution(new_solution):
+                        neighbors.append(new_solution)
+
+        # Try to squeeze another order that was previously not allocated
+        for neighbor in neighbors.copy():
+            for non_allocated in self.non_allocated_orders:
+                non_allocated_order = next(order for order in self.orders if order.order_id == non_allocated.order_id)
+                truck_loads = self._get_truck_loads(neighbor)
+                for truck in self.trucks:
+                    if truck_loads[truck.truck_id] + non_allocated_order.weight <= truck.max_weight:
+                        new_solution = self.copy_list_of_order_distribution_entity(neighbor)
+                        new_order_distribution = new_solution + [
+                            OrderDistributionEntity(
+                                distribution_id=self.distribution_id,
+                                order_id=non_allocated.order_id,
+                                truck_id=truck.truck_id,
+                                order=non_allocated_order,
+                                truck=truck,
+                            )
+                        ]
                         neighbors.append(new_order_distribution)
 
         return sample(neighbors, len(neighbors))
-
-    def _can_add_order_to_truck(self, order_id: UUID, truck: TruckEntity) -> bool:
-        order_weight = self._get_order_weight(order_id)
-        current_load = self._get_truck_loads(self.order_distribution).get(
-            truck.truck_id, 0
-        )
-        return current_load + order_weight <= truck.max_weight
 
     def _is_valid_solution(
         self, order_distribution: List[OrderDistributionEntity]
@@ -221,12 +260,26 @@ class BinPackingService:
         truck_loads = defaultdict(float)
         for order_distribution_entity in order_distribution:
             truck_loads[order_distribution_entity.truck_id] += self._get_order_weight(
-                order_distribution_entity.order_id
+                order_distribution_entity
             )
         return truck_loads
 
-    def _get_order_weight(self, order_id: UUID) -> float:
-        return next(order.weight for order in self.orders if order.order_id == order_id)
+    @staticmethod
+    def _get_order_weight(order_distribution_entity: OrderDistributionEntity) -> float:
+        return order_distribution_entity.order.weight
+
+    @staticmethod
+    def copy_list_of_order_distribution_entity(order_distribution: List[OrderDistributionEntity]) -> List[OrderDistributionEntity]:
+        return [
+            OrderDistributionEntity(
+                distribution_id=order_distribution_entity.distribution_id,
+                order_id=order_distribution_entity.order_id,
+                order=order_distribution_entity.order,
+                truck_id=order_distribution_entity.truck_id,
+                truck=order_distribution_entity.truck,
+            )
+            for order_distribution_entity in order_distribution
+        ]
 
     def _get_non_allocated_orders(
         self, order_distribution: List[OrderDistributionEntity]
