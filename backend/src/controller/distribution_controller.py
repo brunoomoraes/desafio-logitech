@@ -1,7 +1,10 @@
 from fastapi import Depends
 
 from src.dto.distribution_response_dto import DistributionResponseDTO
-from src.service.distribution_service import DistributionService, get_distribution_service
+from src.service.distribution_service import (
+    DistributionService,
+    get_distribution_service,
+)
 
 
 class DistributionController:

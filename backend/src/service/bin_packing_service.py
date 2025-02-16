@@ -21,6 +21,8 @@ from src.status.order_status import OrderStatus
     that in this case is the truck with the least amount of space remaining.
     The BFD is a good solution, but for large datasets, is costly, and a metaheuristics algorithm is probably better.
 """
+
+
 class BinPackingService:
     def __init__(
         self,
@@ -63,9 +65,11 @@ class BinPackingService:
             return [], []
 
         if len(self.trucks) == 0:
-            [self._add_non_allocated_order(order, "No truck available") for order in self.orders]
+            [
+                self._add_non_allocated_order(order, "No truck available")
+                for order in self.orders
+            ]
             return [], self.non_allocated_orders
-
 
         sorted_orders = sorted(self.orders, key=lambda x: x.weight, reverse=True)
         sorted_trucks = sorted(self.trucks, key=lambda x: x.max_weight, reverse=True)
