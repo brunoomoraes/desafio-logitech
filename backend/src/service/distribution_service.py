@@ -54,7 +54,7 @@ class DistributionService:
         )
 
         order_distribution, non_allocated_orders = (
-            bin_packing_service.best_fit_decreasing()
+            bin_packing_service.tabu_search()
         )
 
         map(self.order_repository.update, orders)
