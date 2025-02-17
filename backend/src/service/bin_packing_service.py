@@ -112,7 +112,7 @@ class BinPackingService:
         self.non_allocated_orders.clear()
         self.order_distribution.clear()
 
-        initial_order_distribution, _ = self.best_fit_decreasing()
+        initial_order_distribution, initial_non_allocated_orders = self.best_fit_decreasing()
 
         best_solution = self.copy_list_of_order_distribution_entity(initial_order_distribution)
         best_allocated_count = len(initial_order_distribution)
@@ -165,7 +165,7 @@ class BinPackingService:
             iteration += 1
 
         self.order_distribution = best_solution
-        self.non_allocated_orders = self._get_non_allocated_orders(best_solution)
+        self.non_allocated_orders = self._get_non_allocated_orders(best_solution, initial_non_allocated_orders)
         return self.order_distribution, self.non_allocated_orders
 
     def _generate_neighbors(
@@ -282,20 +282,31 @@ class BinPackingService:
         ]
 
     def _get_non_allocated_orders(
-        self, order_distribution: List[OrderDistributionEntity]
+        self, order_distribution: List[OrderDistributionEntity], initial_non_allocated_orders: List[NonAllocatedOrderEntity]
     ) -> List[NonAllocatedOrderEntity]:
-        allocated_orders = {
+        non_allocated_orders = []
+
+        allocated_orders = [
             order_distribution_entity.order_id
             for order_distribution_entity in order_distribution
-        }
-
-        non_allocated_orders = [
-            NonAllocatedOrderEntity(
-                order_id=order.order_id,
-                distribution_id=self.distribution_id,
-                reason="Not allocated",
-            )
-            for order in self.orders
-            if order.order_id not in allocated_orders
         ]
+
+        dict_of_initial_non_allocated_orders = defaultdict(NonAllocatedOrderEntity)
+        for non_allocated_order in initial_non_allocated_orders:
+            dict_of_initial_non_allocated_orders[non_allocated_order.order_id] = non_allocated_order
+
+        for order in self.orders:
+            if order.order_id in allocated_orders: continue
+
+            if order.order_id in dict_of_initial_non_allocated_orders.keys():
+                non_allocated_orders.append(dict_of_initial_non_allocated_orders[order.order_id])
+            else:
+                non_allocated_orders.append(
+                    NonAllocatedOrderEntity(
+                        order_id=order.order_id,
+                        distribution_id=self.distribution_id,
+                        reason="Not allocated",
+                    )
+                )
+
         return non_allocated_orders
