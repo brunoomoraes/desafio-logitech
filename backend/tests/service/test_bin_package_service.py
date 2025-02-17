@@ -1,3 +1,4 @@
+import random
 from collections import defaultdict
 from typing import List
 from uuid import UUID, uuid4
@@ -211,15 +212,13 @@ def test_tabu_search_overweight_order():
     assert len(non_allocated) == 1
 
 
-def test_tabu_search_overweight_order():
-    distribution_id = UUID('12345678-1234-5678-1234-567812345678')
-
+def test_tabu_search_overweight_order(distribution_id):
     trucks = [
-        TruckEntity(UUID('truck-1'), 100.0)
+        TruckEntity(truck_id=uuid4(), max_weight=100)
     ]
 
     orders = [
-        OrderEntity(UUID('order-1'), 150.0)  # Order too heavy for any truck
+        OrderEntity(order_id=uuid4(), weight=150, status=OrderStatus.CREATED),
     ]
 
     service = BinPackingService(orders, trucks, distribution_id)
@@ -248,7 +247,77 @@ def test_tabu_search_improvement_over_best_fit(distribution_id):
     _, bfd_non_allocated_orders = service.best_fit_decreasing()
     bfd_non_allocated_orders_size = len(bfd_non_allocated_orders)
 
-    _, tabu_non_allocated_orders = service.tabu_search(max_iterations=100)
+    _, tabu_non_allocated_orders = service.tabu_search(max_iterations=4)
     tabu_non_allocated_orders_size = len(tabu_non_allocated_orders)
 
     assert tabu_non_allocated_orders_size < bfd_non_allocated_orders_size
+
+def test_tabu_search_low_weight_orders(distribution_id):
+    random.seed(42)
+    trucks = [
+        TruckEntity(truck_id=uuid4(), max_weight=random.uniform(50, 200))
+        for _ in range(10)
+    ]
+
+    orders = [
+        OrderEntity(order_id=uuid4(), weight=random.uniform(10, 40), status=OrderStatus.CREATED)
+        for _ in range(50)
+    ]
+
+    service = BinPackingService(orders, trucks, distribution_id)
+
+    bfd_order_distribution, bfd_non_allocated_orders = service.best_fit_decreasing()
+    bfd_non_allocated_orders_size = len(bfd_non_allocated_orders)
+    bfd_order_distribution_size = len(bfd_order_distribution)
+
+    empty_space = defaultdict(float)
+    truck_loads = service._get_truck_loads(bfd_order_distribution)
+    for truck in trucks:
+        empty_space[truck.truck_id] = truck.max_weight - truck_loads[truck.truck_id]
+
+    tabu_order_distribution, tabu_non_allocated_orders = service.tabu_search(max_iterations=4)
+    tabu_non_allocated_orders_size = len(tabu_non_allocated_orders)
+    tabu_order_distribution_size = len(tabu_order_distribution)
+
+    empty_space = defaultdict(float)
+    truck_loads = service._get_truck_loads(tabu_order_distribution)
+    for truck in trucks:
+        empty_space[truck.truck_id] = truck.max_weight - truck_loads[truck.truck_id]
+
+    assert tabu_non_allocated_orders_size <= bfd_non_allocated_orders_size
+    assert tabu_order_distribution_size >= bfd_order_distribution_size
+
+def test_tabu_search(distribution_id):
+    random.seed(42)
+    trucks = [
+        TruckEntity(truck_id=uuid4(), max_weight=random.uniform(100, 150))
+        for _ in range(10)
+    ]
+
+    orders = [
+        OrderEntity(order_id=uuid4(), weight=random.uniform(60, 100), status=OrderStatus.CREATED)
+        for _ in range(50)
+    ]
+
+    service = BinPackingService(orders, trucks, distribution_id)
+
+    bfd_order_distribution, bfd_non_allocated_orders = service.best_fit_decreasing()
+    bfd_non_allocated_orders_size = len(bfd_non_allocated_orders)
+    bfd_order_distribution_size = len(bfd_order_distribution)
+
+    empty_space = defaultdict(float)
+    truck_loads = service._get_truck_loads(bfd_order_distribution)
+    for truck in trucks:
+        empty_space[truck.truck_id] = truck.max_weight - truck_loads[truck.truck_id]
+
+    tabu_order_distribution, tabu_non_allocated_orders = service.tabu_search(max_iterations=4)
+    tabu_non_allocated_orders_size = len(tabu_non_allocated_orders)
+    tabu_order_distribution_size = len(tabu_order_distribution)
+
+    empty_space = defaultdict(float)
+    truck_loads = service._get_truck_loads(tabu_order_distribution)
+    for truck in trucks:
+        empty_space[truck.truck_id] = truck.max_weight - truck_loads[truck.truck_id]
+
+    assert tabu_non_allocated_orders_size <= bfd_non_allocated_orders_size
+    assert tabu_order_distribution_size >= bfd_order_distribution_size
