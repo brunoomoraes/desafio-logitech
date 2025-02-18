@@ -8,7 +8,7 @@ from backend.models import Item
 router = APIRouter()
 
 
-@router.post("/", response_model=ItemResponse)
+@router.post("/", response_model=ItemResponse, status_code=201)
 def create_new_item(item: ItemCreate, db: Session = Depends(get_db)):
     db_item = Item(name=item.name, weight=item.weight)
     db.add(db_item)
