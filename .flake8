@@ -1,0 +1,10 @@
+
+[flake8]
+exclude =
+    __init__.py
+    .git
+    __pycache__
+    .venv
+    example.py
+ignore = E203, W503
+max-line-length = 90
