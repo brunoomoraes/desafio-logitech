@@ -1,8 +1,8 @@
+from typing import List, Tuple
+
 from sqlalchemy.orm import Session
 
 from backend.models import Item, Truck
-
-from typing import List, Tuple
 
 
 def distribuir_pedidos(db: Session):

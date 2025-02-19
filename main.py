@@ -1,7 +1,6 @@
 from backend.config import start_app
 from backend.database import init_db
 
-
 if __name__ == "__main__":
     import uvicorn
 

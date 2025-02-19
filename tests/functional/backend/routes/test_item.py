@@ -61,3 +61,4 @@ def test_get_all_items(client, number_items, item_list):
         items.remove(item_format)
 
     assert items == []
+

@@ -1,6 +1,8 @@
-from pydantic import BaseModel
-from backend.schemas.item import ItemResponse
 from typing import List
+
+from pydantic import BaseModel
+
+from backend.schemas.item import ItemResponse
 
 
 class TruckBase(BaseModel):
