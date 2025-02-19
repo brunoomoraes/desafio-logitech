@@ -8,7 +8,7 @@ from backend.models import Truck
 router = APIRouter()
 
 
-@router.post("/", response_model=TruckResponse)
+@router.post("/", response_model=TruckResponse, status_code=201)
 def create_new_truck(truck: TruckCreate, db: Session = Depends(get_db)):
     print(truck)
     db_truck = Truck(name=truck.name, weight_max=truck.weight_max)

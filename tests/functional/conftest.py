@@ -23,12 +23,12 @@ def override_get_db():
 app.dependency_overrides[get_db] = override_get_db
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def test_db():
-    return override_get_db()
+    return TestingSessionLocal()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def client():
     Base.metadata.create_all(bind=engine)  # Cria as tabelas no banco de testes
     with TestClient(app) as c:

@@ -1,28 +1,63 @@
 import pytest
 
+from backend.models import Item
+
 ANY_NAME = "ANY_NAME"
 ANY_WEIGHT = 123.456
 
 
 @pytest.fixture
-def item(client):
-    response = client.post("/item/", json={"name": ANY_NAME, "weight": ANY_WEIGHT})
-    return response.json()
+def item(client, test_db):
+    with test_db as db:
+        db_item = Item(name=ANY_NAME, weight=ANY_WEIGHT)
+        db.add(db_item)
+        db.commit()
+        db.refresh(db_item)
+    return db_item
+
+
+@pytest.fixture
+def item_list(client, test_db, number_items):
+    item_list = []
+    for i in range(number_items):
+        with test_db as db:
+            db_item = Item(name=f"{ANY_NAME} {i}", weight=ANY_WEIGHT)
+            db.add(db_item)
+            db.commit()
+            db.refresh(db_item)
+            item_list.append(db_item)
+    return item_list
 
 
 @pytest.mark.parametrize("item_name, weight", [("Item Teste", 100)])
 def test_create_item(client, item_name, weight):
     item_json = {"name": item_name, "weight": weight}
+
     response = client.post("/item/", json=item_json)
+    item = response.json()
 
     assert response.status_code == 201
-    assert response.json()["name"] == item_name
-    assert response.json()["weight"] == weight
+    assert item["name"] == item_name
+    assert item["weight"] == weight
 
 
-def test_get_items(client, item):
-    item_id = item.get("id")
+def test_get_item(client, item):
+    response = client.get(f"/item/id/{item.id}")
 
-    response = client.get(f"/item/id/{item_id}")
     assert response.status_code == 200
     assert response.json()
+
+
+@pytest.mark.parametrize("number_items", [0, 2, 5])
+def test_get_all_items(client, number_items, item_list):
+    response = client.get("/item/all/")
+    items = response.json().get("items")
+
+    assert response.status_code == 200
+    assert len(items) == number_items
+
+    for item in item_list:
+        item_format = {"id": item.id, "name": item.name, "weight": item.weight}
+        items.remove(item_format)
+
+    assert items == []
