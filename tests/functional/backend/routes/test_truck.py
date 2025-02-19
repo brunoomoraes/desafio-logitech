@@ -67,3 +67,24 @@ def test_get_all_trucks(client, number_trucks, truck_list):
         trucks.remove(truck_format)
 
     assert trucks == []
+
+
+def test_delete_truck(client, truck):
+    response = client.delete(f"/truck/id/{truck.id}")
+
+    assert response.status_code == 200
+    assert response.json()["message"] == "Caminhão removido com sucesso"
+
+
+def test_get_truck_not_found(client):
+    response = client.get("/truck/id/0")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Caminhão não encontrado"
+
+
+def test_delete_truck_not_found(client):
+    response = client.delete("/truck/id/0")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Caminhão não encontrado"

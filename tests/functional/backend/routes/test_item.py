@@ -62,3 +62,23 @@ def test_get_all_items(client, number_items, item_list):
 
     assert items == []
 
+
+def test_delete_item(client, item):
+    response = client.delete(f"/item/id/{item.id}")
+
+    assert response.status_code == 200
+    assert response.json()["message"] == "Item removido com sucesso"
+
+
+def test_get_item_not_found(client):
+    response = client.get("/item/id/0")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Item não encontrado"
+
+
+def test_delete_item_not_found(client):
+    response = client.delete("/item/id/0")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Item não encontrado"

@@ -1,6 +1,6 @@
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from backend.schemas.item import ItemResponse
 
@@ -17,20 +17,17 @@ class TruckCreate(TruckBase):
 class TruckResponse(TruckBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class _TruckResponse(TruckResponse):
     weight_current: float
     items: List[ItemResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TruckListResponse(BaseModel):
     trucks: List[_TruckResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
