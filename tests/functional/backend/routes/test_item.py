@@ -1,31 +1,32 @@
 import pytest
 
+from backend.database import get_db
 from backend.models import Item
+
+db = next(get_db())
 
 ANY_NAME = "ANY_NAME"
 ANY_WEIGHT = 123.456
 
 
 @pytest.fixture
-def item(client, test_db):
-    with test_db as db:
-        db_item = Item(name=ANY_NAME, weight=ANY_WEIGHT)
-        db.add(db_item)
-        db.commit()
-        db.refresh(db_item)
+def item(client):
+    db_item = Item(name=ANY_NAME, weight=ANY_WEIGHT)
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
     return db_item
 
 
 @pytest.fixture
-def item_list(client, test_db, number_items):
+def item_list(client, number_items):
     item_list = []
     for i in range(number_items):
-        with test_db as db:
-            db_item = Item(name=f"{ANY_NAME} {i}", weight=ANY_WEIGHT)
-            db.add(db_item)
-            db.commit()
-            db.refresh(db_item)
-            item_list.append(db_item)
+        db_item = Item(name=f"{ANY_NAME} {i}", weight=ANY_WEIGHT)
+        db.add(db_item)
+        db.commit()
+        db.refresh(db_item)
+        item_list.append(db_item)
     return item_list
 
 

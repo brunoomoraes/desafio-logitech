@@ -28,7 +28,7 @@ jobs:
           pip install -r requirements.txt
 
   lint:
-    name: Flake8 + Black
+    name: Lint
     runs-on: ubuntu-latest
     needs: setup
 

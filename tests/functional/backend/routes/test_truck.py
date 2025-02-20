@@ -1,31 +1,32 @@
 import pytest
 
+from backend.database import get_db
 from backend.models import Truck
+
+db = next(get_db())
 
 ANY_NAME = "ANY_NAME"
 ANY_WEIGHT = 123.456
 
 
 @pytest.fixture
-def truck(client, test_db):
-    with test_db as db:
-        db_truck = Truck(name=ANY_NAME, weight_max=ANY_WEIGHT)
-        db.add(db_truck)
-        db.commit()
-        db.refresh(db_truck)
+def truck(client):
+    db_truck = Truck(name=ANY_NAME, weight_max=ANY_WEIGHT)
+    db.add(db_truck)
+    db.commit()
+    db.refresh(db_truck)
     return db_truck
 
 
 @pytest.fixture
-def truck_list(client, test_db, number_trucks):
+def truck_list(client, number_trucks):
     truck_list = []
     for i in range(number_trucks):
-        with test_db as db:
-            db_truck = Truck(name=f"{ANY_NAME} {i}", weight_max=ANY_WEIGHT)
-            db.add(db_truck)
-            db.commit()
-            db.refresh(db_truck)
-            truck_list.append(db_truck)
+        db_truck = Truck(name=f"{ANY_NAME} {i}", weight_max=ANY_WEIGHT)
+        db.add(db_truck)
+        db.commit()
+        db.refresh(db_truck)
+        truck_list.append(db_truck)
     return truck_list
 
 

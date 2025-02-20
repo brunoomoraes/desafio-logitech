@@ -2,16 +2,17 @@ from typing import List, Tuple
 
 from sqlalchemy.orm import Session
 
+from backend.database import get_db
 from backend.models import Item, Truck
 
 
-def distribuir_pedidos(db: Session):
-    # Lógica para otimizar carga nos caminhões
-    trucks = db.query(Truck).all()
-    items = list(db.query(Item).all())
-    print(items)
+def distribuir_pedidos():
+    db: Session = next(get_db())
 
-    items = _sorte_item(items)
+    trucks = db.query(Truck).all()
+    items = db.query(Item).all()
+
+    items = _sort_item(items)
 
     for truck in trucks:
         list_items_id, items = _add_items_in_truck(truck, items)
@@ -40,9 +41,21 @@ def _add_items_in_truck(truck: Truck, items: List[Item]) -> Tuple[List[int], Lis
     return (list_items_id, items)
 
 
-def _sorte_item(items: List[Item]) -> List[Item]:
-    new_list = []
-    for element in items:
-        new_list.append(element)
-    new_list.sort(key=lambda item: -item.weight)
+def _sort_item(items: List[Item]) -> List[Item]:
+    if not items:
+        return []
+
+    new_list = [items[0]]
+    pos_item = 0
+    for element in items[1:]:
+        while pos_item < len(new_list):
+            if element.weight > new_list[pos_item].weight:
+                new_list.insert(pos_item, element)
+                break
+            else:
+                pos_item += 1
+
+        if pos_item == len(new_list):
+            new_list.append(element)
+
     return new_list
