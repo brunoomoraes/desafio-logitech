@@ -1,1 +1,10 @@
-
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+isort
+black
+flake8
+pytest
+pytest-cov
+httpx
